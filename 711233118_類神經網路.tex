@@ -1,0 +1,260 @@
+\documentclass[12pt, a4paper]{article} 
+\input{preamble_CJK}
+
+\title{類神經網路}
+\author{{\SM 周芊妤}}
+\date{{\TT \today}} 	 
+\begin{document}
+\maketitle
+\fontsize{12}{22 pt}\selectfont
+
+本文深入探討了前饋式神經網路在模式匹配和機器學習領域中的應用，針對具有隱藏層的典型前饋式神經網路結構及其數學模型展開了詳盡的分析，研究專注於機器人手臂和圖形識別等問題，探究神經網路的工作原理和性能，我們的實驗觀察了不同隱藏層數量、神經元數量以及樣本規模對預測結果的影響，以及不同訓練過程導致的結果差異。透過試驗探索了不同參數對神經網路性能的影響，並透過精確度以及均方根誤差之比較來尋找最佳模型和最佳參數組合，以提升神經網路在模式匹配和機器學習中的應用價值和性能。
+
+\section{類神經網路}
+類神經網路是一種受到人腦神經元啟發的機器學習模型，它包含多個層次的神經元組成，每個神經元與上、下層的神經元相連形成一個網路，主要分為下列階段\;：
+\begin{enumerate}
+\item 學習原理\;:\\
+向前傳播（Forward Propagation）:\\
+當給定一組輸入數據時，數據通過不同層次的神經元，乘以權重、加上偏差，並通過激活函數進行處理，最終生成預測結果。\\
+計算損失（Calculate Loss）:\\
+將預測結果與實際結果進行比較，得到模型的誤差，通常使用損失函數（如均方根誤差）來衡量預測值與實際值之間的差異。\\
+反向傳播（Backward Propagation）:\\
+通過梯度下降算法，將這個誤差反向傳播到網路中，調整每個神經元之間的權重和偏差，以降低誤差，使預測值更接近實際值。\\
+權重更新（Weight Update）:\\
+根據反向傳播計算出的梯度，逐步更新神經元之間的權重和偏差，使得模型在訓練數據上的預測能力逐漸提升。
+
+\item 預測原理\;：
+當網路完成訓練後，使用新的輸入數據進行預測。\\
+前向傳播（Forward Propagation）：\\
+新的輸入數據通過經過訓練後的神經網路，按照之前學到的權重和偏差進行計算，生成預測結果。\\
+輸出結果（Output Result）：\\
+經過前向傳播後，網路輸出新的數據對應的預測值，這個預測值可用於後續的應用，例如分類、回歸等。
+\end{enumerate}
+
+類神經網路通過不斷地調整權重和偏差，從而使得模型能夠從訓練數據中學習到特徵和模式，並且能夠對新的數據進行預測。
+
+
+
+\section{機器人手臂}
+一個擁有兩段手臂的機械手臂，分別有不同長度\;：\;$l_1 = 20$\;和\;$l_2 = 10$\;，這手臂可以依靠兩個不同的角度\;$\theta_1$\;和\;$\theta_2$\;的變化，讓手臂前端位置\;$(x, y)$\;移動到圖\;\ref{fig:plot_31.png}\;中的藍色區域內。
+透過\;$(x, y)$\;，可以計算出兩個角度\;$\theta_1$\;和\;$\theta_2$\;:
+
+\begin{equation}
+\theta_1 = tan^{-1}\big(\frac{y}{x} \big)-tan^{-1}\big(\frac{l_2sin(\theta_2)}{l_1+l_2cos(\theta_2)} \big)
+\end{equation}
+
+\begin{equation}
+\theta_2 = cos^{-1}\big(\frac{x^2+y^2-l_1^2-l_2^2}{2l_1l_2} \big)
+\end{equation}
+
+當手臂變得複雜(例如維度提高或角度變多)時，要算出精確的解會變得困難，因此透過訓練資料(圖\;\ref{fig:plot_31.png}\;中的 + 字位置)，讓類神經網路學習如何將\;$(x, y)$\;轉換成\;$\theta_1$\;和\;$\theta_2$\;，訓練過後再去觀察測試資料的準確率是否夠高。
+
+在此，使用以下Python程式碼來畫出訓練資料\;:
+\begin{lstlisting}
+X = l.reshape(-1, 1) * np.cos(t)
+Y = l.reshape(-1, 1) * np.sin(t)
+plt.scatter(X.ravel(), Y.ravel(), marker="+", color = "red")
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.6]{plot_31.png}
+\caption{機器人手臂所及範圍與訓練資料點}
+\label{fig:plot_31.png}
+\end{figure}
+
+\subsection{神經元數量與擬合值的準確度}
+圖\;\ref{fig:plot_29.png}\;中，透過訓練資料(+字位置)的真實位置以及擬合位置（o字位置）的差異，去比較在隱藏層(Hidden layer)為\;$1$\;時，神經元數量分別為\;$10,20,40,80$\;的均方根誤差（Root Mean Squared Error, RMSE)值，進而去探討哪個比較適合。\\
+圖\;\ref{fig:plot_29.png}\;中可以看出在隱藏層\;$1$\;時，當神經元數量\;$=10$\;，均方根誤差\;$=0.0480$\;；當神經元數量\;$=20$\;時，均方根誤差\;$=0.0309$\;；當神經元數量\;$=40$\;，均方根誤差\;$=0.0332$\;；當神經元數量\;$=80$\;，均方根誤差\;$=0.0190$\;。在此，當神經元數量增加時，均方根誤差隨之下降，因此當神經元數量\;$=80$\;時，在這裡的情況是最適當的。
+
+在此，使用以下Python程式碼來設定神經元數量\;:
+\begin{lstlisting}
+Neuron = [(10), (20), (40), (80)]
+\end{lstlisting}
+
+接著，使用以下Python程式碼來畫出圖形\;:
+\begin{lstlisting}
+for i, hidden_layer in enumerate(Neuron):
+    mlp_reg = MLPRegressor(max_iter=8000, solver='lbfgs', hidden_layer_sizes=hidden_layer, verbose=False,
+                           activation='logistic', tol=1e-6, random_state=0)
+    mlp_reg.fit(InputX, OutputY)  
+    OutputY_hat = mlp_reg.predict(InputX) 
+    theta1_hat, theta2_hat = OutputY_hat[:, 0], OutputY_hat[:, 1]
+
+    x_hat = l1 * np.cos(theta1_hat) + l2 * np.cos(theta1_hat + theta2_hat)
+    y_hat = l1 * np.sin(theta1_hat) + l2 * np.sin(theta1_hat + theta2_hat)
+    rmse = np.sqrt(mean_squared_error(OutputY, OutputY_hat))
+    rmses.append(rmse)
+
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.6]{plot_29.png}
+\caption{神經元數量與擬合值的準確度}
+\label{fig:plot_29.png}
+\end{figure}
+
+
+
+\subsection{隱藏層數量與擬合值的準確度}
+圖\;\ref{fig:plot_44.png}\;中，透過訓練資料(+字位置)的真實位置以及擬合位置（o字位置）的差異，去比較在每層神經元數量都為\;$10$\;的情況下，隱藏層數量分別為\;$1, 2, 3, 4$\;的均方根誤差值，進而去探討哪個比較適合。\\
+圖\;\ref{fig:plot_44.png}\;中可以看出在每層神經元數量都為\;$1$\;時，當隱藏層數量\;$=1$\;，均方根誤差\\$=0.0480$\;；當隱藏層數量\;$=2$\;，均方根誤差\;$=0.0324$\;；當隱藏層數量\;$=3$\;時，均方根誤差\;$=0.0398$\;；當隱藏層數量\;$=4$\;時，均方根誤差\;$=0.0474$\;。在此，當隱藏層數量\;$=2$\;時，在這裡的情況是最適當的。
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.6]{plot_44.png}
+\caption{隱藏層數量與擬合值的準確度}
+\label{fig:plot_44.png}
+\end{figure}
+
+
+\subsection{均勻散佈的亂數}
+在圖\;\ref{fig:plot_31.png}\;、圖\;\ref{fig:plot_29.png}\;以及圖\;\ref{fig:plot_44.png}\;中，資料的分佈不均勻，需要被修正，圖\;\ref{fig:parallel_1}\;是修正後的資料分佈，圖\;\ref{fig:parallel_1}\;(a)\;是均勻落在扇形區的亂數、圖\;\ref{fig:parallel_1}\;(b)\;是均勻落在圓形區的亂數。
+
+\begin{figure}[H]
+\centering
+\subfloat[均勻落在扇形區的亂數]{
+\includegraphics[scale=0.58]{plot_32.png}}
+\subfloat[均勻落在圓形區的亂數]{
+\includegraphics[scale=0.58]{plot_33.png}}
+\caption{均勻散佈亂數}
+\label{fig:parallel_1}
+\end{figure}
+
+\subsection{測試、訓練以及預測資料的關係}
+圖\;\ref{fig:parallel_2}\;為訓練資料（綠色+ 符號）、測試資料（紫色o 符號）與預測資料（粉色□符號）的關係位置，\;\ref{fig:parallel_2}\;(a)\;為樣本數\;$=1000$\;，隱藏層\;$1$\;層，神經元數量\;$=40$\;的情況，在此\;$SSE=0.0020,\;RMSE=0.0448$\;；圖\;\ref{fig:parallel_2}\;(b)\;為樣本數\;$=1000$\;，隱藏層\;$1$\;層，神經元數量\;$=80$\;的情況，在此\;$SSE=0.0014,\;RMSE=0.0377$\;。這個比較顯示，在相同隱藏層數、樣本數下，神經元數量為\;$80$\;會有更低的誤差，較小的誤差意味著該模型具有更好的性能和擬合能力。
+
+
+\begin{figure}[h]
+\centering
+\subfloat[神經元數量為\;$40$\;]{
+\includegraphics[scale=0.58]{plot_34.png}}
+\subfloat[神經元數量為\;$80$\;]{
+\includegraphics[scale=0.58]{plot_36.png}}
+\caption{不同神經元數量的預測誤差比較}
+\label{fig:parallel_2}
+\end{figure}
+
+圖\;\ref{fig:parallel_3}\;為訓練資料（綠色+ 符號）、測試資料（紫色o 符號）與預測資料（粉色□符號）的關係位置，\;\ref{fig:parallel_3}\;(a)\;為隱藏層\;$1$\;層，神經元數量\;$=80$\;，樣本數\;$=300$\;的情況，在此\;$SSE=0.0005,\;RMSE=0.0223$\;；\;\ref{fig:parallel_3}\;(b)\;為隱藏層\;$1$\;層，神經元數量\;$=80$\;，樣本數\;$=800$\;的情況，在此\;$SSE=0.0017,\;RMSE=0.0406$\;。這個比較顯示，在相同隱藏層數、神經元數量下，樣本數\;$=300$\;會有更低的誤差，較小的誤差意味著該模型具有更好的性能和擬合能力。
+
+總體而言，這些比較表明神經網路模型在不同參數設置下表現差異明顯，適當的調整隱藏層數量、神經元數量和樣本規模等參數，能夠有效提升模型的性能和準確度。
+
+\begin{figure}[H]
+\centering
+\subfloat[樣本數為\;$300$\;]{
+\includegraphics[scale=0.58]{plot_37.png}}
+\subfloat[樣本數為\;$800$\;]{
+\includegraphics[scale=0.58]{plot_38.png}}
+\caption{不同樣本數數量的預測誤差比較}
+\label{fig:parallel_3}
+\end{figure}
+
+\subsection{樣本的品質比較}
+當我們比較來自不同分佈的樣本時，觀察其均方根誤差的差異可以觀察出有關各種資料的「品質」，這種比較能夠幫助我們了解不同資料分佈背後的特徵，進而評估模型對於不同類型資料的適應能力。\\
+圖\;\ref{fig:parallel_9}\;(a)\;的樣本服從常態分佈，其均方根誤差為\;$0.0398$\;、圖\;\ref{fig:parallel_9}\;(b)\;的樣本服從均勻分佈，其均方根誤差為\;$0.0591$\;，因此可以知道，當樣本服從常態分佈時，它的品質會比服從均勻分佈好。
+
+\begin{figure}[H]
+\centering
+\subfloat[樣本服從常態分佈的RMSE]{
+\includegraphics[scale=0.58]{plot_47.png}}
+\subfloat[樣本服從均勻分佈的RMSE]{
+\includegraphics[scale=0.58]{plot_48.png}}
+\caption{不同樣本分佈的RMSE差別}
+\label{fig:parallel_9}
+\end{figure}
+
+\section{圖形識別}
+類神經網路也被應用在圖形識別上，圖形識別的由來可以追溯到早期電腦科學中，特別是在機器學習和人工智慧領域的發展，利用機器學習算法來識別和理解圖像中的對象、形狀、結構等。\\
+這項技術的發展受到手寫辨識的影響，當手寫方式多樣且每個人的字跡不同時，讓電腦自動識別變得更具挑戰性，因此，人們開始研究如何利用電腦和機器學習算法來讓機器理解和識別不同的手寫字形，早期這項技術主要應用在郵務系統中，以識別手寫郵遞區號、地址或數字來加速郵件處理。隨著技術的發展，圖形識別的應用領域不斷擴展，從手寫辨識擴展到臉部識別、影像分類、自駕車中的物體辨識等多個領域。
+\subsection{手寫數字}
+圖\;\ref{fig:plot_39.png}\;為手寫數字的圖，接著透過圖形識別，來判斷電腦對手寫數字所對應真實數字的預測準確率。
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.8]{plot_39.png}
+\caption{手寫數字}
+\label{fig:plot_39.png}
+\end{figure}
+
+
+圖形識別和機器手臂的應用有著明顯區別，前者牽涉到對群組的辨識與分類，輸出結果是特定類別的資料，由於圖形識別要考慮更多類別的辨識，這使得評估模型的準確性變得更具挑戰性，對於其預測，我們通常使用混淆矩陣（Confusion matrix）來評估模型的預測準確度和整體表現，這個矩陣提供了模型在各個類別間預測的情況，幫助我們了解模型的錯誤和正確預測情況，進而評估其可靠性。\\
+圖\;\ref{fig:parallel_4}\;以及圖\;\ref{fig:parallel_5}\;分別代表在隱藏層為\;$1$\;下，神經元數量分別為\;$30$\;以及\;$80$\;的混淆矩陣所計算出的測試分數(亦即準確率)。在圖\;\ref{fig:parallel_4}\;(a)以及圖\;\ref{fig:parallel_5}\;(a)中格子內的數字代表該群組的預測準確個數；圖\;\ref{fig:parallel_4}\;(b)以及圖\;\ref{fig:parallel_5}\;(b)中格子內的數字代表該群組的預測準確率，由此可以看出在神經元數量\;$30$\;時，測試分數\;$=88.40\%$\;；在神經元數量\;$80$\;時，測試分數\;$=89.20\%$。透過比較測試分數的大小，可以發現在神經元數量為\;$80$\;的情況下，較高的測試分數意味著該模型具有更好的性能和預測能力。
+
+在圖\;\ref{fig:parallel_4}\;(b)以及圖\;\ref{fig:parallel_5}\;(b)中，是使用Python加入以下程式碼來達到歸一化，進而由圖\;\ref{fig:parallel_4}\;(a)以及圖\;\ref{fig:parallel_5}\;(a)的準確個數來算出預測準確率\;:
+\begin{lstlisting}
+normalize='true'
+\end{lstlisting}
+
+\begin{figure}[h]
+\centering
+\subfloat[神經元個數\;$30$\;的混淆矩陣(個數)]{
+\includegraphics[scale=0.6]{plot_40.png}}
+\subfloat[神經元個數\;$30$\;的混淆矩陣(準確率)]{
+\includegraphics[scale=0.6]{plot_45.png}}
+\caption{神經元個數\;$30$\;的手寫數字圖形辨識}
+\label{fig:parallel_4}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\subfloat[神經元個數\;$80$\;的混淆矩陣(個數)]{
+\includegraphics[scale=0.6]{plot_42.png}}
+\subfloat[神經元個數\;$80$\;的混淆矩陣(準確率)]{
+\includegraphics[scale=0.6]{plot_46.png}}
+\caption{神經元個數\;$80$\;的手寫數字圖形辨識}
+\label{fig:parallel_5}
+\end{figure}
+
+圖\;\ref{fig:parallel_6}\;為在隱藏層為\;$1$\;下，神經元數量分別為\;$30$\;以及\;$80$\;的損失函數變化圖，它是一個以訓練迭代次數為橫軸，而損失值為縱軸的曲線圖，可以幫助我們觀察模型在訓練過程中學習的效果。在神經網路中，訓練過程通常會迭代很多次，每次迭代模型會根據給定的訓練數據進行參數的調整，優化模型以減小損失函數的值，損失函數通常衡量了模型預測與實際目標之間的差距，因此，希望隨著訓練的進行損失函數的值能夠逐漸減小。
+
+\begin{figure}[H]
+\centering
+\subfloat[神經元個數\;$30$\;的損失函數變化圖]{
+\includegraphics[scale=0.435]{plot_41.png}}
+\subfloat[神經元個數\;$80$\;的損失函數變化圖]{
+\includegraphics[scale=0.435]{plot_43.png}}
+\caption{損失函數變化圖}
+\label{fig:parallel_6}
+\end{figure}
+
+\subsection{英文字母}
+圖\;\ref{fig:plot_49.png}\;為英文字母的圖，接著透過圖形識別，來判斷電腦對英文字母的預測準確率。
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.8]{plot_49.png}
+\caption{英文字母}
+\label{fig:plot_49.png}
+\end{figure}
+
+圖\;\ref{fig:parallel_7}\;以及圖\;\ref{fig:parallel_8}\;分別代表在隱藏層為\;$1$\;下，神經元數量分別為\;$30$\;以及\;$80$\;的混淆矩陣所計算出的測試分數(亦即準確率)。在圖\;\ref{fig:parallel_7}\;(a)以及圖\;\ref{fig:parallel_8}\;(a)中格子內的數字代表該群組的預測準確個數；圖\;\ref{fig:parallel_7}\;(b)以及圖\;\ref{fig:parallel_8}\;(b)為在隱藏層為\;$1$\;下，神經元數量分別為\;$30$\;以及\;$80$\;時的的損失函數變化圖，它是一個以訓練迭代次數為橫軸，而損失值為縱軸的曲線圖，可以幫助我們觀察模型在訓練過程中學習的效果。由此可以看出在神經元數量\;$30$\;時，測試分數\;$=63.00\%$\;；在神經元數量\;$80$\;時，測試分數\;$=75.24\%$。透過比較測試分數的大小，可以發現在神經元數量為\;$80$\;的情況下，較高的測試分數意味著該模型具有更好的性能和預測能力。
+
+\begin{figure}[H]
+\centering
+\subfloat[神經元個數\;$30$\;的混淆矩陣(個數)]{
+\includegraphics[scale=0.58]{plot_50.png}}
+\subfloat[神經元個數\;$30$\;的損失函數變化圖]{
+\includegraphics[scale=0.47]{plot_52.png}}
+\caption{神經元個數\;$30$\;的英文字母圖形辨識}
+\label{fig:parallel_7}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\subfloat[神經元個數\;$80$\;的混淆矩陣(個數)]{
+\includegraphics[scale=0.58]{plot_53.png}}
+\subfloat[神經元個數\;$80$\;的損失函數變化圖)]{
+\includegraphics[scale=0.47]{plot_55.png}}
+\caption{神經元個數\;$80$\;的英文字母圖形辨識}
+\label{fig:parallel_8}
+\end{figure}
+
+
+\section{結論}
+本文研究深入探討了前饋式神經網路在模式匹配和機器學習領域的應用，我們針對典型前饋式神經網路結構和其數學模型進行了詳盡的分析，研究聚焦於機器人手臂和圖形識別等問題，通過調整神經網路參數，能夠更好地適應不同的模式匹配需求，提高預測準確性，並為機器學習任務帶來更高效能和適用性。總而言之，這項研究展現了調整神經網路參數對於模式匹配及機器學習效能的重要性，我們的探索不僅增進了對神經網路工作原理的理解，也提供了優化模型以解決實際問題的實用指引。
+
+
+
+
+\end{document}
